@@ -181,10 +181,28 @@ fun Game(navController: NavController) {
     }
 }
 
+//@Composable
+//fun WordScreen(navController: NavController) {
+//    val words = listOf("Cat", "Dog", "House", "Car", "Tree")
+//    val randomWord = words.random()
+//
+//    Column(
+//        modifier = Modifier.fillMaxSize(),
+//        verticalArrangement = Arrangement.Center,
+//        horizontalAlignment = Alignment.CenterHorizontally
+//    ) {
+//        Text("Draw this word: $randomWord")
+//        Spacer(modifier = Modifier.height(16.dp))
+//        Button(onClick = { navController.navigate("paint?word=$randomWord") }) {
+//            Text("Start Drawing")
+//        }
+//    }
+//}
+
 @Composable
 fun WordScreen(navController: NavController) {
     val words = listOf("Cat", "Dog", "House", "Car", "Tree")
-    val randomWord = words.random()
+    val randomWord by remember { mutableStateOf(words.random()) } // Keep word consistent
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -199,6 +217,7 @@ fun WordScreen(navController: NavController) {
     }
 }
 
+
 @Composable
 fun PaintScreen(navController: NavController, word: String?) {
     val context = LocalContext.current.applicationContext
@@ -211,10 +230,11 @@ fun PaintScreen(navController: NavController, word: String?) {
 
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        if (!granted) {
-            Toast.makeText(context, "Require permission", Toast.LENGTH_SHORT).show()
-        }
+    ) { _ ->
+//        if (!granted) {
+//            Toast.makeText(context,"", Toast.LENGTH_SHORT).show()
+//
+//        }
     }
     LaunchedEffect(Unit) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q){
@@ -428,10 +448,10 @@ fun PaintApp(){
 
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        if (!granted) {
-            Toast.makeText(context, "Require permission", Toast.LENGTH_SHORT).show()
-        }
+    ) { _ ->
+//        if (!granted) {
+//            Toast.makeText(context, "", Toast.LENGTH_SHORT).show()
+//        }
     }
     LaunchedEffect(Unit) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q){
@@ -592,7 +612,7 @@ fun ColorWheelDialog(
 
             // Brightness (Black/White) Slider
             Column(modifier = Modifier.padding(top = 16.dp)) {
-                Text("Brightness (0 = Black, 1 = Full Color)")
+                Text("Brightness")
                 Slider(
                     value = brightness,
                     onValueChange = { value ->
