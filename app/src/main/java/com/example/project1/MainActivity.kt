@@ -59,8 +59,6 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -93,9 +91,9 @@ fun AppNavigator() {
     Scaffold(
         bottomBar = { BottomNavigationBar(navController) }
     ) { padding ->
-        NavHost(navController, startDestination = "paintapp", modifier = Modifier.padding(padding)) {
-            composable("paintapp") { PaintApp() }
-            composable("main") { MainMenu(navController) }
+        NavHost(navController, startDestination = "paint app", modifier = Modifier.padding(padding)) {
+            composable("paint app") { PaintApp() }
+            composable("main") { MainMenu() }
             composable("game") { Game(navController) }
             composable("paint?word={word}") { backStackEntry ->
                 val word = backStackEntry.arguments?.getString("word")
@@ -119,7 +117,7 @@ fun AppNavigator() {
 fun BottomNavigationBar(navController: NavController) {
     val items = listOf(
         BottomNavItem("Home", "main"),
-        BottomNavItem("Paint", "paintapp"),
+        BottomNavItem("Paint", "paint app"),
         BottomNavItem("Game", "game")
     )
 
@@ -140,10 +138,10 @@ data class BottomNavItem(val label: String, val route: String)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainMenu(navController: NavController) {
+fun MainMenu() {
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Ding!") })
+            TopAppBar(title = { Text("Ding") })
         }
     ) { paddingValues ->
         Column(
@@ -155,15 +153,6 @@ fun MainMenu(navController: NavController) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text("Welcome!")
-//            Button(onClick = { navController.navigate("paint") }) {
-//                Text("Painting")
-//            }
-//
-//            Spacer(modifier = Modifier.height(16.dp))
-//
-//            Button(onClick = { /* Add more features later */ }) {
-//                Text("Future Feature")
-//            }
         }
     }
 }
@@ -181,27 +170,25 @@ fun Game(navController: NavController) {
     }
 }
 
-//@Composable
-//fun WordScreen(navController: NavController) {
-//    val words = listOf("Cat", "Dog", "House", "Car", "Tree")
-//    val randomWord = words.random()
-//
-//    Column(
-//        modifier = Modifier.fillMaxSize(),
-//        verticalArrangement = Arrangement.Center,
-//        horizontalAlignment = Alignment.CenterHorizontally
-//    ) {
-//        Text("Draw this word: $randomWord")
-//        Spacer(modifier = Modifier.height(16.dp))
-//        Button(onClick = { navController.navigate("paint?word=$randomWord") }) {
-//            Text("Start Drawing")
-//        }
-//    }
-//}
 
 @Composable
 fun WordScreen(navController: NavController) {
-    val words = listOf("Cat", "Dog", "House", "Car", "Tree")
+    val words = listOf(
+        "Cat", "Dog", "House", "Car", "Tree", "Table", "Slide", "Trampoline", "Park", "Microwave",
+        "Trash Can", "Banana", "Orange", "Sweater", "Heels", "Shoes", "Laptop", "Window", "Bottle",
+        "Chair", "Lamp", "Pillow", "Blanket", "Backpack", "Phone", "Television", "Mirror", "Keyboard",
+        "Mouse", "Monitor", "Door", "Fridge", "Oven", "Spoon", "Fork", "Plate", "Bicycle", "Bus",
+        "Train", "Boat", "Airplane", "Clock", "Watch", "Headphones", "Book", "Notebook", "Pen", "Marker",
+        "Couch", "Bed", "Curtains", "Fan", "Radio", "Camera", "Speaker", "Cup", "Mug", "Desk", "Rug",
+        "Shoelaces", "Gloves", "Scarf", "Hat", "Socks", "Jacket", "Jeans", "Dress", "Suitcase", "Wallet",
+        "Purse", "Earrings", "Bracelet", "Necklace", "Glasses", "Toothbrush", "Toothpaste", "Soap",
+        "Shampoo", "Conditioner", "Towel", "Comb", "Brush", "Backyard", "Garage", "Sidewalk", "Street",
+        "Highway", "Bridge", "Mountain", "Beach", "River", "Lake", "Ocean", "Forest", "Desert", "Island",
+        "School", "Library", "Supermarket", "Mall", "Hospital", "Restaurant", "Cafe", "Bakery", "Zoo",
+        "Museum", "Stadium", "Theater", "Hotel", "Airport", "Station", "Playground", "Gym", "Office",
+        "Factory", "Farm", "Barn", "Market", "Pharmacy", "Bank", "Post Office", "Church", "Temple",
+        "Mosque", "Castle", "Skyscraper"
+    )
     val randomWord by remember { mutableStateOf(words.random()) } // Keep word consistent
 
     Column(
@@ -231,10 +218,6 @@ fun PaintScreen(navController: NavController, word: String?) {
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { _ ->
-//        if (!granted) {
-//            Toast.makeText(context,"", Toast.LENGTH_SHORT).show()
-//
-//        }
     }
     LaunchedEffect(Unit) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q){
@@ -248,10 +231,6 @@ fun PaintScreen(navController: NavController, word: String?) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ){
-//            ColorPicker { selectedColor ->
-//                currentColor = selectedColor
-//                isEraser = false
-//            }
             ColorPickerBox(currentColor) { selectedColor ->
                 currentColor = selectedColor
                 isEraser = false
@@ -303,9 +282,6 @@ fun PaintScreen(navController: NavController, word: String?) {
     }
 }
 
-//Button(onClick = { navController.navigate("answer?word=$word") }) {
-//    Text("Ready to Answer!")
-//}
 
 @Composable
 fun AnswerScreen(navController: NavController, word: String?) {
@@ -337,15 +313,6 @@ fun AnswerScreen(navController: NavController, word: String?) {
         }) {
             Text("Submit Guess")
         }
-
-
-//        if (isCorrect != null) {
-//            Text(
-//                text = if (isCorrect == true) "Correct!" else "Incorrect! The correct word was $correctAnswer.",
-//                color = if (isCorrect == true) Color.Green else Color.Red,
-//                fontSize = 18.sp
-//            )
-//        }
     }
 }
 
@@ -370,72 +337,6 @@ fun ResultScreen(navController: NavController, isCorrect: String?, correctAnswer
 }
 
 
-//@Composable
-//fun Game(navController: NavController) {
-//    Column(
-//        modifier = Modifier.fillMaxSize(),
-//        verticalArrangement = Arrangement.Center,
-//        horizontalAlignment = Alignment.CenterHorizontally
-//    ) {
-//        Button(onClick = { navController.navigate("word") }) {
-//                Text("Start Game")
-//            }
-//    }
-//}
-//
-//@Composable
-//fun WordScreen(navController: NavController) {
-//    Column(
-//        modifier = Modifier.fillMaxSize(),
-//        verticalArrangement = Arrangement.Center,
-//        horizontalAlignment = Alignment.CenterHorizontally
-//    ) {
-//        Button(onClick = { navController.navigate("paint") }) {
-//            Text("Start Drawing")
-//        }
-//    }
-//}
-//
-//@Composable
-//fun PaintScreen(navController: NavController) {
-//    Column(
-//        modifier = Modifier.fillMaxSize(),
-//        verticalArrangement = Arrangement.Center,
-//        horizontalAlignment = Alignment.CenterHorizontally
-//    ) {
-//        Button(onClick = { navController.navigate("answer") }) {
-//            Text("Ready to Answer!")
-//        }
-//    }
-//}
-//
-//@Composable
-//fun AnswerScreen(navController: NavController) {
-//    Column(
-//        modifier = Modifier.fillMaxSize(),
-//        verticalArrangement = Arrangement.Center,
-//        horizontalAlignment = Alignment.CenterHorizontally
-//    ) {
-//        Button(onClick = { navController.navigate("result") }) {
-//            Text("See result")
-//        }
-//    }
-//}
-//
-//@Composable
-//fun ResultScreen(navController: NavController) {
-//    Column(
-//        modifier = Modifier.fillMaxSize(),
-//        verticalArrangement = Arrangement.Center,
-//        horizontalAlignment = Alignment.CenterHorizontally
-//    ) {
-//        Button(onClick = { navController.navigate("main") }) {
-//            Text("End Game")
-//        }
-//    }
-//}
-
-
 @Composable
 fun PaintApp(){
     val context = LocalContext.current.applicationContext
@@ -449,9 +350,6 @@ fun PaintApp(){
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { _ ->
-//        if (!granted) {
-//            Toast.makeText(context, "", Toast.LENGTH_SHORT).show()
-//        }
     }
     LaunchedEffect(Unit) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q){
@@ -465,10 +363,6 @@ fun PaintApp(){
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ){
-//            ColorPicker { selectedColor ->
-//                currentColor = selectedColor
-//                isEraser = false
-//            }
             ColorPickerBox(currentColor) { selectedColor ->
                 currentColor = selectedColor
                 isEraser = false
@@ -517,27 +411,6 @@ fun PaintApp(){
     }
 }
 
-//@Composable
-//fun ColorPicker(onColorSelected: (Color) -> Unit){
-//    val context = LocalContext.current.applicationContext
-//    val colorMap = mapOf(Color.Red to "Red",
-//        Color.Green to "Green",
-//        Color.Blue to "Blue",
-//        Color.Black to "Black")
-//    Row {
-//        colorMap.forEach{(color, name) ->
-//            Box(Modifier.size(20.dp)
-//                .background(color, CircleShape)
-//                .padding(4.dp)
-//                .clickable {
-//                    onColorSelected(color)
-//                    Toast.makeText(context, name, Toast.LENGTH_SHORT).show()
-//                }
-//            )
-//        }
-//    }
-//}
-
 @Composable
 fun ColorPickerBox(currentColor: Color, onColorSelected: (Color) -> Unit) {
     var showDialog by remember { mutableStateOf(false) }
@@ -568,7 +441,7 @@ fun ColorWheelDialog(
     onColorSelected: (Color) -> Unit
 ) {
     var selectedColor by remember { mutableStateOf(Color.Red) }
-    var brightness by remember { mutableStateOf(1f) } // Controls black/white
+    var brightness by remember { mutableFloatStateOf(1f) } // Controls black/white
 
     Dialog(onDismissRequest = { }) { // Prevent closing by tapping outside
         Column(
@@ -764,18 +637,3 @@ fun saveDrawingToGallery(context: Context, lines: List<Line>){
     }
 }
 
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    Project1Theme {
-        Greeting("Android")
-    }
-}
