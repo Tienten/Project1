@@ -67,25 +67,36 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.project1.GameData.gameModel
+import androidx.activity.viewModels
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.livedata.observeAsState
 import com.example.project1.ui.theme.Project1Theme
+import com.google.firebase.Firebase
+import com.google.firebase.firestore.firestore
 import kotlinx.coroutines.launch
 import java.io.OutputStream
+import kotlin.random.Random
+import kotlin.random.nextInt
+
 
 class MainActivity : ComponentActivity() {
+    private val viewModel: GameViewModel by viewModels()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             Project1Theme {
-                AppNavigator()
+                AppNavigator(viewModel = viewModel)
 
             }
         }
     }
 }
 
+
 @Composable
-fun AppNavigator() {
+fun AppNavigator(viewModel: GameViewModel) {
     val navController = rememberNavController()
 
     Scaffold(
@@ -94,7 +105,9 @@ fun AppNavigator() {
         NavHost(navController, startDestination = "paint app", modifier = Modifier.padding(padding)) {
             composable("paint app") { PaintApp() }
             composable("main") { MainMenu() }
-            composable("game") { Game(navController) }
+            composable("game") { Game(navController, viewModel) }
+            composable("DualDeviceGame") { DualDeviceGame(navController, viewModel) }
+            composable("JoinGame") { JoinGame(navController, viewModel) }
             composable("paint?word={word}") { backStackEntry ->
                 val word = backStackEntry.arguments?.getString("word")
                 PaintScreen(navController, word)
@@ -158,7 +171,34 @@ fun MainMenu() {
 }
 
 @Composable
-fun Game(navController: NavController) {
+fun Game(navController: NavController, viewModel: GameViewModel) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Button(onClick = { navController.navigate("word") }) {
+            Text("Single-Device Mode")
+        }
+        Button(onClick = { navController.navigate("DualDeviceGame") }) {
+            Text("Dual-Device Mode")
+        }
+
+        Button(onClick = { navController.navigate("JoinGame") }) {
+            Text("Join Game")
+        }
+    }
+}
+
+@Composable
+fun DualDeviceGame(navController: NavController, viewModel: GameViewModel) {
+    LaunchedEffect(Unit) {
+        viewModel.updateGameModel {
+            gameStatus = GameStatus.CREATED
+            gameID = Random.nextInt(1000..9999).toString()
+        }
+    }
+    val statusText by viewModel.gameStatusText.observeAsState("")
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
@@ -167,8 +207,83 @@ fun Game(navController: NavController) {
         Button(onClick = { navController.navigate("word") }) {
             Text("Start Game")
         }
+
+        Text(statusText)
+
     }
 }
+
+
+@Composable
+fun JoinGame(navController: NavController, viewModel: GameViewModel) {
+    var gameID by remember { mutableStateOf("") }
+    var errorText by remember { mutableStateOf<String?>(null) }
+
+    Column(
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("Enter your game ID to join:")
+        TextField(
+            value = gameID,
+            onValueChange = {
+                gameID = it
+                errorText = null
+            },
+            label = { Text("Game ID") },
+            isError = errorText != null,
+            modifier = Modifier
+                .padding(8.dp)
+                .fillMaxWidth(0.8f)
+        )
+        if (errorText != null) {
+            Text(
+                text = errorText ?: "",
+                color = Color.Red,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+
+        Button(
+            onClick = {
+                if (gameID.isEmpty()) {
+                    errorText = "Please enter a game ID"
+                    return@Button
+                }
+
+                Firebase.firestore.collection("games")
+                    .document(gameID)
+                    .get()
+                    .addOnSuccessListener { document ->
+                        val model = document?.toObject(GameModel::class.java)
+                        if (model == null) {
+                            errorText = "Invalid game ID"
+                        } else {
+                            model.gameStatus = GameStatus.JOINED
+//                            GameData.myID = "O"
+                            viewModel.updateGameModel {
+                                this.gameID = model.gameID
+                                this.sketch = model.sketch
+                                this.word = model.word
+                                this.guess = model.guess
+                                this.isCorrect = model.isCorrect
+                                this.gameStatus = model.gameStatus
+                            }
+                            navController.navigate("word")
+                        }
+                    }
+                    .addOnFailureListener {
+                        errorText = "Error: ${it.message}"
+                    }
+            },
+            modifier = Modifier.padding(top = 16.dp)
+        ) {
+            Text("Join Game")
+        }
+    }
+}
+
 
 
 @Composable
