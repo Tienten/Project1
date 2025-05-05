@@ -107,9 +107,7 @@ fun AppNavigator(viewModel: GameViewModel) {
             composable("game") { Game(navController) }
             composable("DualDeviceGame") { DualDeviceGame(navController, viewModel) }
             composable("JoinGame") { JoinGame(navController, viewModel) }
-            composable("WaitingScreen1?word={word}") { backStackEntry ->
-                val word = backStackEntry.arguments?.getString("word")
-                WaitingScreen1(navController, word, viewModel) }
+            composable("WaitingScreen1?word={word}") { WaitingScreen1(navController, viewModel) }
             composable("WaitingScreen2?word={word}") { backStackEntry ->
                 val word = backStackEntry.arguments?.getString("word")
                 WaitingScreen2(navController, word, viewModel) }
@@ -293,8 +291,7 @@ fun JoinGame(navController: NavController, viewModel: GameViewModel) {
 }
 
 @Composable
-fun WaitingScreen1(navController: NavController, word: String?, viewModel: GameViewModel) {
-    val statusText by viewModel.gameStatusText.observeAsState("")
+fun WaitingScreen1(navController: NavController, viewModel: GameViewModel) {
     val guessStatus by viewModel.guessStatusText.observeAsState("")
 
     Column(
@@ -411,8 +408,6 @@ fun WordScreen(navController: NavController, viewModel: GameViewModel) {
 @Composable
 fun PaintScreen(navController: NavController, word: String?, viewModel: GameViewModel) {
     val gameID = viewModel.getGameID()
-    val context = LocalContext.current.applicationContext
-    val coroutineScope = rememberCoroutineScope()
 
     var currentColor by remember { mutableStateOf(Color.Black) }
     val lines = remember { mutableStateListOf<Line>() }
@@ -501,14 +496,6 @@ fun PaintScreen(navController: NavController, word: String?, viewModel: GameView
             ) {
                 Text("Done!")
             }
-
-//            Button(onClick = {
-//                coroutineScope.launch{
-//                    saveDrawingToGallery(context, lines)
-//                }
-//            }) {
-//                Text("Save")
-//            }
         }
         Canvas(modifier = Modifier.fillMaxSize()
             .background(Color.White)
@@ -547,7 +534,6 @@ fun AnswerScreen(navController: NavController, word: String?, viewModel: GameVie
 
     val correctAnswer = word ?: "Unknown"
     val gameID = viewModel.getGameID()
-//    val gameModel by viewModel.gameModel.observeAsState()
     val sketch = viewModel.getSketch()
 
     Column(
@@ -775,9 +761,9 @@ fun ColorWheelDialog(
     onColorSelected: (Color) -> Unit
 ) {
     var selectedColor by remember { mutableStateOf(Color.Red) }
-    var brightness by remember { mutableFloatStateOf(1f) } // Controls black/white
+    var brightness by remember { mutableFloatStateOf(1f) }
 
-    Dialog(onDismissRequest = { }) { // Prevent closing by tapping outside
+    Dialog(onDismissRequest = { }) {
         Column(
             modifier = Modifier
                 .background(Color.White, shape = CircleShape)
@@ -817,7 +803,6 @@ fun ColorWheelDialog(
                 )
             }
 
-            // Brightness (Black/White) Slider
             Column(modifier = Modifier.padding(top = 16.dp)) {
                 Text("Brightness")
                 Slider(
@@ -830,7 +815,6 @@ fun ColorWheelDialog(
                 )
             }
 
-            // Confirm Button
             Button(
                 onClick = {
                     onColorSelected(selectedColor)
