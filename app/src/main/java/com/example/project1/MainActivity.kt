@@ -67,7 +67,6 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.project1.GameData.gameModel
 import androidx.activity.viewModels
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.livedata.observeAsState
@@ -105,17 +104,23 @@ fun AppNavigator(viewModel: GameViewModel) {
         NavHost(navController, startDestination = "paint app", modifier = Modifier.padding(padding)) {
             composable("paint app") { PaintApp() }
             composable("main") { MainMenu() }
-            composable("game") { Game(navController, viewModel) }
+            composable("game") { Game(navController) }
             composable("DualDeviceGame") { DualDeviceGame(navController, viewModel) }
             composable("JoinGame") { JoinGame(navController, viewModel) }
+            composable("WaitingScreen1?word={word}") { backStackEntry ->
+                val word = backStackEntry.arguments?.getString("word")
+                WaitingScreen1(navController, word, viewModel) }
+            composable("WaitingScreen2?word={word}") { backStackEntry ->
+                val word = backStackEntry.arguments?.getString("word")
+                WaitingScreen2(navController, word, viewModel) }
             composable("paint?word={word}") { backStackEntry ->
                 val word = backStackEntry.arguments?.getString("word")
-                PaintScreen(navController, word)
+                PaintScreen(navController, word, viewModel)
             }
-            composable("word") { WordScreen(navController) }
+            composable("word") { WordScreen(navController, viewModel) }
             composable("answer?word={word}") { backStackEntry ->
                 val word = backStackEntry.arguments?.getString("word")
-                AnswerScreen(navController, word)
+                AnswerScreen(navController, word, viewModel)
             }
             composable("result?isCorrect={isCorrect}&correctAnswer={correctAnswer}") { backStackEntry ->
                 val isCorrect = backStackEntry.arguments?.getString("isCorrect")
@@ -148,7 +153,6 @@ fun BottomNavigationBar(navController: NavController) {
 
 data class BottomNavItem(val label: String, val route: String)
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainMenu() {
@@ -171,7 +175,7 @@ fun MainMenu() {
 }
 
 @Composable
-fun Game(navController: NavController, viewModel: GameViewModel) {
+fun Game(navController: NavController) {
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
@@ -194,6 +198,7 @@ fun Game(navController: NavController, viewModel: GameViewModel) {
 fun DualDeviceGame(navController: NavController, viewModel: GameViewModel) {
     LaunchedEffect(Unit) {
         viewModel.updateGameModel {
+            currentPlayer = "draw"
             gameStatus = GameStatus.CREATED
             gameID = Random.nextInt(1000..9999).toString()
         }
@@ -218,6 +223,7 @@ fun DualDeviceGame(navController: NavController, viewModel: GameViewModel) {
 fun JoinGame(navController: NavController, viewModel: GameViewModel) {
     var gameID by remember { mutableStateOf("") }
     var errorText by remember { mutableStateOf<String?>(null) }
+
 
     Column(
         modifier = Modifier.fillMaxSize().padding(16.dp),
@@ -261,8 +267,9 @@ fun JoinGame(navController: NavController, viewModel: GameViewModel) {
                             errorText = "Invalid game ID"
                         } else {
                             model.gameStatus = GameStatus.JOINED
-//                            GameData.myID = "O"
+                            model.currentPlayer ="guess"
                             viewModel.updateGameModel {
+                                this.currentPlayer = model.currentPlayer
                                 this.gameID = model.gameID
                                 this.sketch = model.sketch
                                 this.word = model.word
@@ -270,7 +277,8 @@ fun JoinGame(navController: NavController, viewModel: GameViewModel) {
                                 this.isCorrect = model.isCorrect
                                 this.gameStatus = model.gameStatus
                             }
-                            navController.navigate("word")
+                            val word = model.word
+                            navController.navigate("WaitingScreen2?word=$word")
                         }
                     }
                     .addOnFailureListener {
@@ -284,10 +292,73 @@ fun JoinGame(navController: NavController, viewModel: GameViewModel) {
     }
 }
 
+@Composable
+fun WaitingScreen1(navController: NavController, word: String?, viewModel: GameViewModel) {
+    val statusText by viewModel.gameStatusText.observeAsState("")
+    val guessStatus by viewModel.guessStatusText.observeAsState("")
+
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        if (guessStatus == "Done"){
+            val result = viewModel.getIsCorrect()
+            if (result == "true"){
+                Text("Your friend guessed right!!!")
+            } else {
+                Text("Uh oh, your friend guessed wrong... Try next time!")
+            }
+            Button(
+                onClick = {navController.navigate("main")}
+            ) {
+                Text("End Game")
+            }
+        }
+        else {
+            Text("Please wait for your friend. They are guessing...")
+            Button(onClick = { viewModel.reloadGameData() }) {
+                Text("Reload")
+            }
+        }
+
+
+    }
+}
+
+@Composable
+fun WaitingScreen2(navController: NavController, word: String?, viewModel: GameViewModel) {
+    val statusText by viewModel.gameStatusText.observeAsState("")
+    val sketchStatus by viewModel.sketchStatusText.observeAsState("")
+
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        if (statusText == "Your friend is taking a guess..." && sketchStatus == "Done") {
+            Text("Your friend has done sketching. You can take a guess!")
+            Button(
+                onClick = { navController.navigate("answer?word=$word") }
+            ) {
+                Text("Guess now!")
+            }
+
+        }
+        else {
+            Text("Please wait for your friend. They are sketching...")
+            Button(onClick = { viewModel.reloadGameData() }) {
+                Text("Reload")
+            }
+        }
+
+
+    }
+}
 
 
 @Composable
-fun WordScreen(navController: NavController) {
+fun WordScreen(navController: NavController, viewModel: GameViewModel) {
     val words = listOf(
         "Cat", "Dog", "House", "Car", "Tree", "Table", "Slide", "Trampoline", "Park", "Microwave",
         "Trash Can", "Banana", "Orange", "Sweater", "Heels", "Shoes", "Laptop", "Window", "Bottle",
@@ -305,23 +376,41 @@ fun WordScreen(navController: NavController) {
         "Mosque", "Castle", "Skyscraper"
     )
     val randomWord by remember { mutableStateOf(words.random()) } // Keep word consistent
+    val statusText by viewModel.gameStatusText.observeAsState("")
+    val gameID = viewModel.getGameID()
+
+    viewModel.updateGameModel {
+        gameStatus = GameStatus.JOINING
+        word = randomWord
+    }
 
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Draw this word: $randomWord")
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = { navController.navigate("paint?word=$randomWord") }) {
-            Text("Start Drawing")
+        if (gameID == "-1") {
+            Text("Draw this word: $randomWord")
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(onClick = { navController.navigate("paint?word=$randomWord") }) {
+                Text("Start Drawing")
+            }
+        } else {
+            Text(statusText)
+            Text("Draw this word: $randomWord")
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(onClick = { navController.navigate("paint?word=$randomWord") }) {
+                Text("Start Drawing")
+            }
         }
+
     }
 }
 
 
 @Composable
-fun PaintScreen(navController: NavController, word: String?) {
+fun PaintScreen(navController: NavController, word: String?, viewModel: GameViewModel) {
+    val gameID = viewModel.getGameID()
     val context = LocalContext.current.applicationContext
     val coroutineScope = rememberCoroutineScope()
 
@@ -335,6 +424,16 @@ fun PaintScreen(navController: NavController, word: String?) {
     ) { _ ->
     }
     LaunchedEffect(Unit) {
+        if (gameID != "-1") {
+            Firebase.firestore.collection("games")
+                .document(gameID)
+                .update(
+                    mapOf(
+                        "currentPlayer" to "draw",
+                        "gameStatus" to GameStatus.DRAW
+                    )
+                )
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q){
             launcher.launch(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
         }
@@ -359,16 +458,57 @@ fun PaintScreen(navController: NavController, word: String?) {
             Button(onClick = {lines.clear()}) {
                 Text("Reset")
             }
-            Button(onClick = { navController.navigate("answer?word=$word") }) {
-                Text("Ready to Answer!")
-            }
-            Button(onClick = {
-                coroutineScope.launch{
-                    saveDrawingToGallery(context, lines)
+
+            Button(
+                onClick = {
+                    if (gameID == "-1") {
+                        navController.navigate("answer?word=$word")
+                    } else {
+
+                        Firebase.firestore.collection("games")
+                            .document(gameID)
+                            .get()
+                            .addOnSuccessListener { document ->
+                                val model = document?.toObject(GameModel::class.java)
+                                if (model == null) {
+                                    throw IllegalArgumentException("Model for this game ID is not found!")
+                                } else {
+                                    model.gameStatus = GameStatus.GUESS
+                                    model.sketch = lines.map { it.toDTO() }
+                                    model.sketchStatus = SketchStatus.DONE
+                                    model.currentPlayer ="guess"
+                                    Firebase.firestore.collection("games")
+                                        .document(gameID)
+                                        .set(model)
+                                        .addOnSuccessListener {
+                                            viewModel.updateGameModel {
+                                                this.currentPlayer = model.currentPlayer
+                                                this.gameID = model.gameID
+                                                this.sketch = model.sketch
+                                                this.word = model.word
+                                                this.guess = model.guess
+                                                this.isCorrect = model.isCorrect
+                                                this.gameStatus = model.gameStatus
+                                                this.sketchStatus = model.sketchStatus
+                                                this.guessStatus = model.guessStatus
+                                            }
+                                            navController.navigate("WaitingScreen1?word=$word")
+                                        }
+                                }
+                            }
+                    }
                 }
-            }) {
-                Text("Save")
+            ) {
+                Text("Done!")
             }
+
+//            Button(onClick = {
+//                coroutineScope.launch{
+//                    saveDrawingToGallery(context, lines)
+//                }
+//            }) {
+//                Text("Save")
+//            }
         }
         Canvas(modifier = Modifier.fillMaxSize()
             .background(Color.White)
@@ -395,45 +535,124 @@ fun PaintScreen(navController: NavController, word: String?) {
             }
         }
     }
+
+
 }
 
 
 @Composable
-fun AnswerScreen(navController: NavController, word: String?) {
+fun AnswerScreen(navController: NavController, word: String?, viewModel: GameViewModel) {
     var guess by remember { mutableStateOf("") }
     var isCorrect by remember { mutableStateOf<Boolean?>(null) }
 
     val correctAnswer = word ?: "Unknown"
+    val gameID = viewModel.getGameID()
+//    val gameModel by viewModel.gameModel.observeAsState()
+    val sketch = viewModel.getSketch()
 
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Enter your guess:")
-        TextField(
-            value = guess,
-            onValueChange = { guess = it },
-            label = { Text("Your Guess") },
-            modifier = Modifier
-                .padding(8.dp)
-                .fillMaxWidth(0.8f)
-        )
+        if (gameID == "-1") {
+            Text("Enter your guess:")
+            TextField(
+                value = guess,
+                onValueChange = { guess = it },
+                label = { Text("Your Guess") },
+                modifier = Modifier
+                    .padding(8.dp)
+                    .fillMaxWidth(0.8f)
+            )
+            Button(onClick = {
+                isCorrect = guess.trim().equals(correctAnswer, ignoreCase = true)
+                navController.navigate("result?isCorrect=${if (isCorrect == true) "true" else "false"}&correctAnswer=$correctAnswer")
+            }) {
+                Text("Submit")
+            }
+        } else {
+            Row(
+                Modifier.fillMaxWidth()
+                    .padding(3.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Enter your guess:")
+                TextField(
+                    value = guess,
+                    onValueChange = { guess = it },
+                    label = { Text("Your Guess") },
+                    modifier = Modifier
+                        .padding(8.dp)
+                        .fillMaxWidth(0.8f)
+                )
 
-        Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-        Button(onClick = {
-            isCorrect = guess.trim().equals(correctAnswer, ignoreCase = true)
-            navController.navigate("result?isCorrect=${if (isCorrect == true) "true" else "false"}&correctAnswer=$correctAnswer")
-        }) {
-            Text("Submit Guess")
+                Button(onClick = {
+                    isCorrect = guess.trim().equals(correctAnswer, ignoreCase = true)
+                    Firebase.firestore.collection("games")
+                        .document(gameID)
+                        .get()
+                        .addOnSuccessListener { document ->
+                            val model = document?.toObject(GameModel::class.java)
+                            if (model == null) {
+                                throw IllegalArgumentException("Model for this game ID is not found!")
+                            } else {
+                                model.gameStatus = GameStatus.FINISHED
+                                model.guess = guess
+                                model.guessStatus = GuessStatus.DONE
+                                model.isCorrect = isCorrect.toString()
+                                model.currentPlayer ="draw"
+                                Firebase.firestore.collection("games")
+                                    .document(gameID)
+                                    .set(model)
+                                    .addOnSuccessListener {
+                                        viewModel.updateGameModel {
+                                            this.currentPlayer = model.currentPlayer
+                                            this.gameID = model.gameID
+                                            this.sketch = model.sketch
+                                            this.word = model.word
+                                            this.guess = model.guess
+                                            this.isCorrect = model.isCorrect
+                                            this.gameStatus = model.gameStatus
+                                            this.sketchStatus = model.sketchStatus
+                                            this.guessStatus = model.guessStatus
+                                        }
+
+                                    }
+                                navController.navigate("result?isCorrect=${if (isCorrect == true) "true" else "false"}&correctAnswer=$correctAnswer")
+                            }
+                        }
+                }) {
+                    Text("Submit")
+                }
+            }
+            Canvas(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.White)
+            ) {
+                sketch.forEach { line ->
+                    drawLine(
+                        color = line.color,
+                        start = line.start,
+                        end = line.end,
+                        strokeWidth = line.strokeWidth,
+                        cap = StrokeCap.Round
+                    )
+                }
+            }
         }
+
     }
 }
 
 @Composable
 fun ResultScreen(navController: NavController, isCorrect: String?, correctAnswer: String?) {
     val isCorrectBoolean = isCorrect == "true"
+
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
@@ -712,10 +931,6 @@ fun BrushSizeSelector(currentSize: Float, onSizeSelected: (Float) -> Unit,
     }
 }
 
-data class Line(val start: Offset,
-                val end: Offset,
-                val color: Color,
-                val strokeWidth: Float = 10f)
 fun saveDrawingToGallery(context: Context, lines: List<Line>){
     val bitmap = Bitmap.createBitmap(1080, 1920, Bitmap.Config.ARGB_8888)
     bitmap.applyCanvas {
