@@ -68,8 +68,12 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.activity.viewModels
+import androidx.compose.foundation.Image
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import com.example.project1.ui.theme.Project1Theme
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.firestore
@@ -77,6 +81,8 @@ import kotlinx.coroutines.launch
 import java.io.OutputStream
 import kotlin.random.Random
 import kotlin.random.nextInt
+
+
 
 
 class MainActivity : ComponentActivity() {
@@ -103,7 +109,7 @@ fun AppNavigator(viewModel: GameViewModel) {
     ) { padding ->
         NavHost(navController, startDestination = "paint app", modifier = Modifier.padding(padding)) {
             composable("paint app") { PaintApp() }
-            composable("main") { MainMenu() }
+            composable("main") { MainMenu(viewModel) }
             composable("game") { Game(navController) }
             composable("DualDeviceGame") { DualDeviceGame(navController, viewModel) }
             composable("JoinGame") { JoinGame(navController, viewModel) }
@@ -123,7 +129,7 @@ fun AppNavigator(viewModel: GameViewModel) {
             composable("result?isCorrect={isCorrect}&correctAnswer={correctAnswer}") { backStackEntry ->
                 val isCorrect = backStackEntry.arguments?.getString("isCorrect")
                 val correctAnswer = backStackEntry.arguments?.getString("correctAnswer")
-                ResultScreen(navController, isCorrect, correctAnswer)
+                ResultScreen(navController, isCorrect, correctAnswer, viewModel)
             }
         }
     }
@@ -132,31 +138,56 @@ fun AppNavigator(viewModel: GameViewModel) {
 @Composable
 fun BottomNavigationBar(navController: NavController) {
     val items = listOf(
-        BottomNavItem("Home", "main"),
-        BottomNavItem("Paint", "paint app"),
-        BottomNavItem("Game", "game")
+        Triple("Home", "main", R.drawable.baseline_cottage_24),
+        Triple("Paint", "paint app", R.drawable.baseline_color_lens_24),
+        Triple("Game", "game", R.drawable.baseline_emoji_events_24)
     )
 
-    androidx.compose.material3.NavigationBar {
-        items.forEach { item ->
+    androidx.compose.material3.NavigationBar (containerColor = Color(0xFF526049)){
+        items.forEach { (label, route, iconRes) ->
             NavigationBarItem(
-                label = { Text(item.label) },
+                icon = {
+                    Image(
+                        painter = painterResource(id = iconRes),
+                        contentDescription = label,
+                        modifier = Modifier.size(24.dp),
+                        colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(Color(0xffffe6bd))
+                    )
+                },
+                label = { Text(
+                    text = label,
+                    color = Color(0xFFffe6bd),
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold)},
                 selected = false,
-                onClick = { navController.navigate(item.route) },
-                icon = {} // You can add icons here
+                onClick = { navController.navigate(route) }
             )
+
         }
     }
 }
 
-data class BottomNavItem(val label: String, val route: String)
+//data class BottomNavItem(val label: String, val route: String)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainMenu() {
+fun MainMenu(viewModel: GameViewModel) {
+    LaunchedEffect(Unit) {
+        viewModel.updateGameModel {
+            currentPlayer = ""
+            gameID = "-1"
+            sketch = listOf()
+            word = ""
+            guess = ""
+            isCorrect = ""
+            gameStatus = GameStatus.CREATED
+            sketchStatus = SketchStatus.NONE
+            guessStatus  = GuessStatus.NONE
+        }
+    }
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Ding") })
+            TopAppBar(title = { Text("DING", color = Color(0xFF526049), fontSize = 30.sp, fontWeight = FontWeight.Bold) })
         }
     ) { paddingValues ->
         Column(
@@ -167,27 +198,39 @@ fun MainMenu() {
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Welcome!")
+            Text("Welcome!", color = Color(0xffa54d43), fontSize = 40.sp)
         }
     }
 }
 
+val buttonModifier = Modifier
+    .size(250.dp, 100.dp)
+    .padding(vertical = 12.dp)
+
 @Composable
 fun Game(navController: NavController) {
     Column(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Button(onClick = { navController.navigate("word") }) {
-            Text("Single-Device Mode")
+        Button(onClick = { navController.navigate("word") },
+            modifier = buttonModifier,
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xffa54d43))) {
+            Text("Single-Device Mode", color = Color(0xffffe6bd), fontSize = 20.sp, fontWeight = FontWeight.Bold)
         }
-        Button(onClick = { navController.navigate("DualDeviceGame") }) {
-            Text("Dual-Device Mode")
+        Button(onClick = { navController.navigate("DualDeviceGame") },
+            modifier = buttonModifier,
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xffa54d43))) {
+            Text("Dual-Device Mode", color = Color(0xffffe6bd), fontSize = 20.sp, fontWeight = FontWeight.Bold)
         }
 
-        Button(onClick = { navController.navigate("JoinGame") }) {
-            Text("Join Game")
+        Button(onClick = { navController.navigate("JoinGame") },
+            modifier = buttonModifier,
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xffa54d43))) {
+            Text("Join Game", color = Color(0xffffe6bd), fontSize = 20.sp, fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -197,8 +240,14 @@ fun DualDeviceGame(navController: NavController, viewModel: GameViewModel) {
     LaunchedEffect(Unit) {
         viewModel.updateGameModel {
             currentPlayer = "draw"
-            gameStatus = GameStatus.CREATED
             gameID = Random.nextInt(1000..9999).toString()
+            sketch = listOf()
+            word = ""
+            guess = ""
+            isCorrect = ""
+            gameStatus = GameStatus.CREATED
+            sketchStatus = SketchStatus.NONE
+            guessStatus  = GuessStatus.NONE
         }
     }
     val statusText by viewModel.gameStatusText.observeAsState("")
@@ -207,11 +256,13 @@ fun DualDeviceGame(navController: NavController, viewModel: GameViewModel) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Button(onClick = { navController.navigate("word") }) {
-            Text("Start Game")
+        Button(onClick = { navController.navigate("word") },
+            modifier = buttonModifier,
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xffa54d43))) {
+            Text("Start Game", color = Color(0xffffe6bd), fontSize = 25.sp, fontWeight = FontWeight.Bold)
         }
 
-        Text(statusText)
+        Text(statusText, fontSize = 25.sp)
 
     }
 }
@@ -283,9 +334,10 @@ fun JoinGame(navController: NavController, viewModel: GameViewModel) {
                         errorText = "Error: ${it.message}"
                     }
             },
-            modifier = Modifier.padding(top = 16.dp)
+            modifier = buttonModifier,
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xffa54d43))
         ) {
-            Text("Join Game")
+            Text("Join Game", color = Color(0xffffe6bd), fontSize = 25.sp, fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -293,6 +345,7 @@ fun JoinGame(navController: NavController, viewModel: GameViewModel) {
 @Composable
 fun WaitingScreen1(navController: NavController, viewModel: GameViewModel) {
     val guessStatus by viewModel.guessStatusText.observeAsState("")
+
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -302,20 +355,24 @@ fun WaitingScreen1(navController: NavController, viewModel: GameViewModel) {
         if (guessStatus == "Done"){
             val result = viewModel.getIsCorrect()
             if (result == "true"){
-                Text("Your friend guessed right!!!")
+                Text("Your friend guessed right!!!", fontSize = 18.sp)
             } else {
-                Text("Uh oh, your friend guessed wrong... Try next time!")
+                Text("Uh oh, your friend guessed wrong... Try next time!", fontSize = 18.sp)
             }
             Button(
-                onClick = {navController.navigate("main")}
+                onClick = {navController.navigate("main")},
+                modifier = buttonModifier,
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xffa54d43))
             ) {
-                Text("End Game")
+                Text("End Game", color = Color(0xffffe6bd), fontSize = 25.sp, fontWeight = FontWeight.Bold)
             }
         }
         else {
-            Text("Please wait for your friend. They are guessing...")
-            Button(onClick = { viewModel.reloadGameData() }) {
-                Text("Reload")
+            Text("Please wait for your friend. They are guessing...", fontSize = 18.sp)
+            Button(onClick = { viewModel.reloadGameData() },
+                modifier = buttonModifier,
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xffa54d43))) {
+                Text("Reload", color = Color(0xffffe6bd), fontSize = 25.sp, fontWeight = FontWeight.Bold)
             }
         }
 
@@ -327,6 +384,7 @@ fun WaitingScreen1(navController: NavController, viewModel: GameViewModel) {
 fun WaitingScreen2(navController: NavController, word: String?, viewModel: GameViewModel) {
     val statusText by viewModel.gameStatusText.observeAsState("")
     val sketchStatus by viewModel.sketchStatusText.observeAsState("")
+    val correct = viewModel.getWord()
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -334,18 +392,22 @@ fun WaitingScreen2(navController: NavController, word: String?, viewModel: GameV
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         if (statusText == "Your friend is taking a guess..." && sketchStatus == "Done") {
-            Text("Your friend has done sketching. You can take a guess!")
+            Text("Your friend has done sketching. You can take a guess!", fontSize = 15.sp)
             Button(
-                onClick = { navController.navigate("answer?word=$word") }
+                onClick = { navController.navigate("answer?word=$correct") },
+                modifier = buttonModifier,
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xffa54d43))
             ) {
-                Text("Guess now!")
+                Text("Guess now!", color = Color(0xffffe6bd), fontSize = 25.sp, fontWeight = FontWeight.Bold)
             }
 
         }
         else {
-            Text("Please wait for your friend. They are sketching...")
-            Button(onClick = { viewModel.reloadGameData() }) {
-                Text("Reload")
+            Text("Please wait for your friend. They are sketching...", fontSize = 18.sp)
+            Button(onClick = { viewModel.reloadGameData() },
+                modifier = buttonModifier,
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xffa54d43))) {
+                Text("Reload", color = Color(0xffffe6bd), fontSize = 25.sp, fontWeight = FontWeight.Bold)
             }
         }
 
@@ -387,17 +449,22 @@ fun WordScreen(navController: NavController, viewModel: GameViewModel) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         if (gameID == "-1") {
-            Text("Draw this word: $randomWord")
+            Text("Draw this word: $randomWord", fontSize = 18.sp)
             Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = { navController.navigate("paint?word=$randomWord") }) {
-                Text("Start Drawing")
+            Button(onClick = { navController.navigate("paint?word=$randomWord") },
+                modifier = buttonModifier,
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xffa54d43))) {
+                Text("Start Drawing", color = Color(0xffffe6bd), fontSize = 25.sp, fontWeight = FontWeight.Bold)
             }
         } else {
-            Text(statusText)
-            Text("Draw this word: $randomWord")
+
+            Text(statusText, fontSize = 18.sp)
+            Text("Draw this word: $randomWord", fontSize = 18.sp)
             Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = { navController.navigate("paint?word=$randomWord") }) {
-                Text("Start Drawing")
+            Button(onClick = { navController.navigate("paint?word=$randomWord") },
+                modifier = buttonModifier,
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xffa54d43))) {
+                Text("Start Drawing", color = Color(0xffffe6bd), fontSize = 25.sp, fontWeight = FontWeight.Bold)
             }
         }
 
@@ -408,6 +475,7 @@ fun WordScreen(navController: NavController, viewModel: GameViewModel) {
 @Composable
 fun PaintScreen(navController: NavController, word: String?, viewModel: GameViewModel) {
     val gameID = viewModel.getGameID()
+    val correct = viewModel.getWord()
 
     var currentColor by remember { mutableStateOf(Color.Black) }
     val lines = remember { mutableStateListOf<Line>() }
@@ -419,16 +487,16 @@ fun PaintScreen(navController: NavController, word: String?, viewModel: GameView
     ) { _ ->
     }
     LaunchedEffect(Unit) {
-        if (gameID != "-1") {
-            Firebase.firestore.collection("games")
-                .document(gameID)
-                .update(
-                    mapOf(
-                        "currentPlayer" to "draw",
-                        "gameStatus" to GameStatus.DRAW
-                    )
-                )
-        }
+//        if (gameID != "-1") {
+//            Firebase.firestore.collection("games")
+//                .document(gameID)
+//                .update(
+//                    mapOf(
+//                        "currentPlayer" to "draw",
+//                        "gameStatus" to GameStatus.DRAW
+//                    )
+//                )
+//        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q){
             launcher.launch(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
         }
@@ -447,11 +515,13 @@ fun PaintScreen(navController: NavController, word: String?, viewModel: GameView
 
             BrushSizeSelector(brushSize, onSizeSelected = {selectedSize -> brushSize = selectedSize},
                 isEraser = isEraser, keepMode = {keepEraserMode -> isEraser = keepEraserMode})
-            Button(onClick = {isEraser = true}) {
-                Text("Eraser")
+            Button(onClick = {isEraser = true},
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xffa54d43))) {
+                Text("Eraser", color = Color(0xffffe6bd), fontSize = 18.sp)
             }
-            Button(onClick = {lines.clear()}) {
-                Text("Reset")
+            Button(onClick = {lines.clear()},
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xffa54d43))) {
+                Text("Reset", color = Color(0xffffe6bd), fontSize = 18.sp)
             }
 
             Button(
@@ -487,14 +557,15 @@ fun PaintScreen(navController: NavController, word: String?, viewModel: GameView
                                                 this.sketchStatus = model.sketchStatus
                                                 this.guessStatus = model.guessStatus
                                             }
-                                            navController.navigate("WaitingScreen1?word=$word")
+                                            navController.navigate("WaitingScreen1?word=$correct")
                                         }
                                 }
                             }
                     }
-                }
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xffa54d43))
             ) {
-                Text("Done!")
+                Text("Done!", color = Color(0xffffe6bd), fontSize = 18.sp)
             }
         }
         Canvas(modifier = Modifier.fillMaxSize()
@@ -531,6 +602,7 @@ fun PaintScreen(navController: NavController, word: String?, viewModel: GameView
 fun AnswerScreen(navController: NavController, word: String?, viewModel: GameViewModel) {
     var guess by remember { mutableStateOf("") }
     var isCorrect by remember { mutableStateOf<Boolean?>(null) }
+    val correct = viewModel.getWord()
 
     val correctAnswer = word ?: "Unknown"
     val gameID = viewModel.getGameID()
@@ -542,7 +614,7 @@ fun AnswerScreen(navController: NavController, word: String?, viewModel: GameVie
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         if (gameID == "-1") {
-            Text("Enter your guess:")
+            Text("Enter your guess:", fontSize = 18.sp)
             TextField(
                 value = guess,
                 onValueChange = { guess = it },
@@ -554,8 +626,10 @@ fun AnswerScreen(navController: NavController, word: String?, viewModel: GameVie
             Button(onClick = {
                 isCorrect = guess.trim().equals(correctAnswer, ignoreCase = true)
                 navController.navigate("result?isCorrect=${if (isCorrect == true) "true" else "false"}&correctAnswer=$correctAnswer")
-            }) {
-                Text("Submit")
+            },
+                modifier = buttonModifier,
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xffa54d43))) {
+                Text("Submit", color = Color(0xffffe6bd), fontSize = 25.sp, fontWeight = FontWeight.Bold)
             }
         } else {
             Row(
@@ -564,7 +638,7 @@ fun AnswerScreen(navController: NavController, word: String?, viewModel: GameVie
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Enter your guess:")
+                Text("Enter your guess:", fontSize = 18.sp)
                 TextField(
                     value = guess,
                     onValueChange = { guess = it },
@@ -608,11 +682,13 @@ fun AnswerScreen(navController: NavController, word: String?, viewModel: GameVie
                                         }
 
                                     }
-                                navController.navigate("result?isCorrect=${if (isCorrect == true) "true" else "false"}&correctAnswer=$correctAnswer")
+                                navController.navigate("result?isCorrect=${if (isCorrect == true) "true" else "false"}&correctAnswer=$correct")
                             }
                         }
-                }) {
-                    Text("Submit")
+                },
+                    modifier = buttonModifier,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xffa54d43))) {
+                    Text("Submit", color = Color(0xffffe6bd))
                 }
             }
             Canvas(
@@ -636,8 +712,9 @@ fun AnswerScreen(navController: NavController, word: String?, viewModel: GameVie
 }
 
 @Composable
-fun ResultScreen(navController: NavController, isCorrect: String?, correctAnswer: String?) {
+fun ResultScreen(navController: NavController, isCorrect: String?, correctAnswer: String?, viewModel: GameViewModel) {
     val isCorrectBoolean = isCorrect == "true"
+    val correct = viewModel.getWord()
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -645,13 +722,15 @@ fun ResultScreen(navController: NavController, isCorrect: String?, correctAnswer
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = if (isCorrectBoolean) "Correct!" else "Incorrect! The correct answer was $correctAnswer.",
+            text = if (isCorrectBoolean) "Correct!" else "Incorrect! The correct answer was $correct.",
             color = if (isCorrectBoolean) Color.Green else Color.Red,
             fontSize = 20.sp
         )
         Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = { navController.navigate("main") }) {
-            Text("End Game")
+        Button(onClick = { navController.navigate("main") },
+            modifier = buttonModifier,
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xffa54d43))) {
+            Text("End Game", color = Color(0xffffe6bd), fontSize = 25.sp, fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -690,18 +769,21 @@ fun PaintApp(){
 
             BrushSizeSelector(brushSize, onSizeSelected = {selectedSize -> brushSize = selectedSize},
                 isEraser = isEraser, keepMode = {keepEraserMode -> isEraser = keepEraserMode})
-            Button(onClick = {isEraser = true}) {
-                Text("Eraser")
+            Button(onClick = {isEraser = true},
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xffa54d43))) {
+                Text("Eraser", color = Color(0xffffe6bd), fontSize = 18.sp)
             }
-            Button(onClick = {lines.clear()}) {
-                Text("Reset")
+            Button(onClick = {lines.clear()},
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xffa54d43))) {
+                Text("Reset", color = Color(0xffffe6bd), fontSize = 18.sp)
             }
             Button(onClick = {
                 coroutineScope.launch{
                     saveDrawingToGallery(context, lines)
                 }
-            }) {
-                Text("Save")
+            },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xffa54d43))) {
+                Text("Save", color = Color(0xffffe6bd), fontSize = 18.sp)
             }
         }
         Canvas(modifier = Modifier.fillMaxSize()
@@ -770,7 +852,6 @@ fun ColorWheelDialog(
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Close Button
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.TopEnd) {
                 Text(
                     "✖",

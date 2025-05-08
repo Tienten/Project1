@@ -4,9 +4,6 @@ data class GameModel(
     var currentPlayer : String = "", //draw or guess
     var gameID : String = "-1",
     var sketch: List<LineDTO> = listOf(),
-
-//    var sketch : SnapshotStateList<Line> = mutableStateListOf(),
-//    var sketch: List<Line> = listOf(),
     var word : String = "",
     var guess : String = "",
     var isCorrect : String = "",
@@ -17,12 +14,12 @@ data class GameModel(
 )
 
 enum class GameStatus{
-    CREATED,
-    JOINING,
-    JOINED,
-    DRAW,
-    GUESS,
-    FINISHED
+    CREATED,    // Player 1 created a game session
+    JOINING,    // Assigned gameID and a word to guess
+    JOINED,     // Player 2 joined
+    DRAW,       // Player 1 is sketching
+    GUESS,      // Player 2 is guessing
+    FINISHED    // Game session finishes
 }
 
 enum class SketchStatus{
